@@ -23,7 +23,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.channels.WritableByteChannel;
@@ -31,7 +30,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
-
 import org.apache.beam.model.jobmanagement.v1.ArtifactApi.ArtifactMetadata;
 import org.apache.beam.model.jobmanagement.v1.ArtifactApi.CommitManifestRequest;
 import org.apache.beam.model.jobmanagement.v1.ArtifactApi.CommitManifestResponse;
@@ -90,7 +88,8 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
   public void commitManifest(
       CommitManifestRequest request, StreamObserver<CommitManifestResponse> responseObserver) {
     try {
-      StagingSessionToken stagingSessionToken = StagingSessionToken.decode(request.getStagingSessionToken());
+      StagingSessionToken stagingSessionToken =
+          StagingSessionToken.decode(request.getStagingSessionToken());
       ResourceId manifestResourceId = getManifestFileResourceId(stagingSessionToken);
       ResourceId artifactDirResourceId = getArtifactDirResourceId(stagingSessionToken);
       ProxyManifest.Builder proxyManifestBuilder =
@@ -155,30 +154,23 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
 
     LOG.info("Removing dir {}", dir);
 
-    ProxyManifest proxyManifest = BeamFileSystemArtifactRetrievalService.loadManifest(manifestResourceId);
+    ProxyManifest proxyManifest =
+        BeamFileSystemArtifactRetrievalService.loadManifest(manifestResourceId);
     for (Location location : proxyManifest.getLocationList()) {
       String uri = location.getUri();
       LOG.info("Removing artifact: {}", uri);
       FileSystems.delete(
-          Collections.singletonList(
-              FileSystems.matchNewResource(uri, false /* is directory */)
-          )
-      );
+          Collections.singletonList(FileSystems.matchNewResource(uri, false /* is directory */)));
     }
 
-    ResourceId artifactsResourceId = dir.resolve(ARTIFACTS, StandardResolveOptions.RESOLVE_DIRECTORY);
+    ResourceId artifactsResourceId =
+        dir.resolve(ARTIFACTS, StandardResolveOptions.RESOLVE_DIRECTORY);
     LOG.info("Removing artifacts: {}", artifactsResourceId);
-    FileSystems.delete(
-        Collections.singletonList(artifactsResourceId)
-    );
+    FileSystems.delete(Collections.singletonList(artifactsResourceId));
     LOG.info("Removing manifest: {}", manifestResourceId);
-    FileSystems.delete(
-        Collections.singletonList(manifestResourceId)
-    );
+    FileSystems.delete(Collections.singletonList(manifestResourceId));
     LOG.info("Removing empty dir: {}", dir);
-    FileSystems.delete(
-        Collections.singletonList(dir)
-    );
+    FileSystems.delete(Collections.singletonList(dir));
     LOG.info("Removed dir {}", dir);
   }
 
@@ -226,8 +218,8 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
         try {
           ResourceId artifactsDirId =
               getArtifactDirResourceId(
-                  StagingSessionToken.decode(putArtifactRequest.getMetadata().getStagingSessionToken())
-              );
+                  StagingSessionToken.decode(
+                      putArtifactRequest.getMetadata().getStagingSessionToken()));
           artifactId =
               artifactsDirId.resolve(
                   encodedFileName(metadata.getMetadata()), StandardResolveOptions.RESOLVE_FILE);
@@ -310,6 +302,7 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
           return;
         }
       }
+      outboundObserver.onNext(PutArtifactResponse.newBuilder().build());
       outboundObserver.onCompleted();
     }
   }

@@ -80,8 +80,7 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
         stagingServiceTokenProvider,
         cleanupJobFn,
         cleanArtifactsPerJob,
-        invoker
-    );
+        invoker);
   }
 
   private final ConcurrentMap<String, JobPreparation> preparations;
@@ -187,21 +186,19 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
         invocation.addStateListener(
             state -> {
               if (
-                  // TODO: add other terminal states
-                  state.equals(JobState.Enum.DONE) ||
-                  state.equals(JobState.Enum.FAILED)
-              ) {
+              // TODO: add other terminal states
+              state.equals(JobState.Enum.DONE) || state.equals(JobState.Enum.FAILED)) {
                 StagingSessionToken stagingSessionToken = stagingSessionTokens.get(preparationId);
                 try {
                   cleanupJobFn.accept(stagingSessionToken);
                 } catch (Exception e) {
                   LOG.error(
-                      "Failed to remove job staging directory for token {}: {}", stagingSessionToken, e
-                  );
+                      "Failed to remove job staging directory for token {}: {}",
+                      stagingSessionToken,
+                      e);
                 }
               }
-            }
-        );
+            });
       }
 
       invocation.start();
