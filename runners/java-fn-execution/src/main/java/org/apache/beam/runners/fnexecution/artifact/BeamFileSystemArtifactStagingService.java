@@ -30,6 +30,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.beam.model.jobmanagement.v1.ArtifactApi;
 import org.apache.beam.model.jobmanagement.v1.ArtifactApi.ArtifactMetadata;
 import org.apache.beam.model.jobmanagement.v1.ArtifactApi.CommitManifestRequest;
 import org.apache.beam.model.jobmanagement.v1.ArtifactApi.CommitManifestResponse;
@@ -45,6 +49,7 @@ import org.apache.beam.sdk.io.fs.MoveOptions.StandardMoveOptions;
 import org.apache.beam.sdk.io.fs.ResolveOptions.StandardResolveOptions;
 import org.apache.beam.sdk.io.fs.ResourceId;
 import org.apache.beam.sdk.util.MimeTypes;
+import org.apache.beam.sdk.values.KV;
 import org.apache.beam.vendor.grpc.v1.io.grpc.Status;
 import org.apache.beam.vendor.grpc.v1.io.grpc.StatusRuntimeException;
 import org.apache.beam.vendor.grpc.v1.io.grpc.stub.StreamObserver;
@@ -78,6 +83,12 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
   public static final String MANIFEST = "MANIFEST";
   public static final String ARTIFACTS = "artifacts";
 
+  // Map from MD5 hashes to Locations where previously-seen artifacts are stored
+  private Map<String, Location> hashedLocations = new HashMap<>();
+  // Map from (StagingSessionToken, Name) pairs to MD5 hashes for previously-seen artifacts; used in case a
+  // CommitManifestRequest doesn't include hashes for any artifacts
+  private Map<KV<String, String>, String> nameHashes = new HashMap<>();
+
   @Override
   public StreamObserver<PutArtifactRequest> putArtifact(
       StreamObserver<PutArtifactResponse> responseObserver) {
@@ -88,20 +99,38 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
   public void commitManifest(
       CommitManifestRequest request, StreamObserver<CommitManifestResponse> responseObserver) {
     try {
-      ResourceId manifestResourceId = getManifestFileResourceId(request.getStagingSessionToken());
-      ResourceId artifactDirResourceId = getArtifactDirResourceId(request.getStagingSessionToken());
+      StagingSessionToken stagingSessionToken =
+          StagingSessionToken.decode(request.getStagingSessionToken());
+      ResourceId manifestResourceId = getManifestFileResourceId(stagingSessionToken);
+      ArtifactApi.Manifest manifest = request.getManifest();
+
       ProxyManifest.Builder proxyManifestBuilder =
-          ProxyManifest.newBuilder().setManifest(request.getManifest());
-      for (ArtifactMetadata artifactMetadata : request.getManifest().getArtifactList()) {
-        proxyManifestBuilder.addLocation(
-            Location.newBuilder()
-                .setName(artifactMetadata.getName())
-                .setUri(
-                    artifactDirResourceId
-                        .resolve(
-                            encodedFileName(artifactMetadata), StandardResolveOptions.RESOLVE_FILE)
-                        .toString())
-                .build());
+          ProxyManifest
+              .newBuilder()
+              .setManifest(manifest);
+
+      for (ArtifactMetadata artifactMetadata : manifest.getArtifactList()) {
+        String name = artifactMetadata.getName();
+        String md5 = artifactMetadata.getMd5();
+        if (md5 == null || md5.isEmpty()) {
+          md5 = nameHashes.get(KV.of(stagingSessionToken.encode(), name));
+          if (md5 == null || md5.isEmpty()) {
+            throw new Exception("No existing MD5 hash found for artifact " + name);
+          }
+        }
+
+        Location location = hashedLocations.get(md5);
+        if (location == null) {
+          throw new Exception("No existing location found for artifact " + name);
+        }
+
+        proxyManifestBuilder
+            .addLocation(
+                Location.newBuilder()
+                        .setName(name)
+                        .setUri(location.getUri())
+                        .build()
+            );
       }
       try (WritableByteChannel manifestWritableByteChannel =
           FileSystems.create(manifestResourceId, MimeTypes.TEXT)) {
@@ -134,7 +163,7 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
    * @return Encoded stagingSessionToken.
    */
   public static String generateStagingSessionToken(String sessionId, String basePath)
-      throws Exception {
+      throws JsonProcessingException {
     StagingSessionToken stagingSessionToken = new StagingSessionToken();
     stagingSessionToken.setSessionId(sessionId);
     stagingSessionToken.setBasePath(basePath);
@@ -195,10 +224,15 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
   private class PutArtifactStreamObserver implements StreamObserver<PutArtifactRequest> {
 
     private final StreamObserver<PutArtifactResponse> outboundObserver;
-    private PutArtifactMetadata metadata;
+    private PutArtifactMetadata putArtifactMetadata;
+    private ArtifactMetadata metadata;
+    private String name;
+    private String md5;
+    private StagingSessionToken stagingSessionToken;
     private ResourceId artifactId;
     private WritableByteChannel artifactWritableByteChannel;
     private Hasher hasher;
+    private boolean responseSent = false;
 
     PutArtifactStreamObserver(StreamObserver<PutArtifactResponse> outboundObserver) {
       this.outboundObserver = outboundObserver;
@@ -207,29 +241,58 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
     @Override
     public void onNext(PutArtifactRequest putArtifactRequest) {
       // Create the directory structure for storing artifacts in the first call.
-      if (metadata == null) {
+      if (putArtifactMetadata == null) {
         checkNotNull(putArtifactRequest);
         checkNotNull(putArtifactRequest.getMetadata());
-        metadata = putArtifactRequest.getMetadata();
+        putArtifactMetadata = putArtifactRequest.getMetadata();
+        LOG.info("stored putArtifactMetadata: {}", putArtifactMetadata);
+
+        try {
+          stagingSessionToken =
+              StagingSessionToken.decode(
+                  putArtifactMetadata.getStagingSessionToken()
+              );
+
+        } catch (Exception e) {
+          outboundObserver.onError(
+              new StatusRuntimeException(
+                  Status.INVALID_ARGUMENT
+                      .withDescription(e.getMessage())
+                      .withCause(e))
+          );
+        }
+
+        metadata = putArtifactMetadata.getMetadata();
+        name = metadata.getName();
+        md5 = metadata.getMd5();
+
+        Location location = hashedLocations.get(md5);
+        if (location != null) {
+          LOG.info("Found {} (md5: {}) at {}", name, md5, location);
+          outboundObserver.onNext(PutArtifactResponse.newBuilder().setCacheHit(true).build());
+          outboundObserver.onCompleted();
+          responseSent = true;
+          return;
+        }
+
         // Check the base path exists or create the base path
         try {
-          ResourceId artifactsDirId =
-              getArtifactDirResourceId(putArtifactRequest.getMetadata().getStagingSessionToken());
+          ResourceId artifactsDirId = getArtifactDirResourceId(stagingSessionToken);
           artifactId =
               artifactsDirId.resolve(
-                  encodedFileName(metadata.getMetadata()), StandardResolveOptions.RESOLVE_FILE);
+                  encodedFileName(metadata), StandardResolveOptions.RESOLVE_FILE);
           LOG.info(
-              "Going to stage artifact {} to {}.", metadata.getMetadata().getName(), artifactId);
+              "Going to stage artifact {} to {}.", name, artifactId);
           artifactWritableByteChannel = FileSystems.create(artifactId, MimeTypes.BINARY);
           hasher = Hashing.md5().newHasher();
         } catch (Exception e) {
           String message =
               String.format(
-                  "Failed to begin staging artifact %s", metadata.getMetadata().getName());
+                  "Failed to begin staging artifact %s", name);
           outboundObserver.onError(
               new StatusRuntimeException(Status.DATA_LOSS.withDescription(message).withCause(e)));
         }
-      } else {
+      } else if (!responseSent) {
         try {
           ByteString data = putArtifactRequest.getData().getData();
           artifactWritableByteChannel.write(data.asReadOnlyByteBuffer());
@@ -238,10 +301,12 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
           String message =
               String.format(
                   "Failed to write chunk of artifact %s to %s",
-                  metadata.getMetadata().getName(), artifactId);
+                  name, artifactId);
           outboundObserver.onError(
               new StatusRuntimeException(Status.DATA_LOSS.withDescription(message).withCause(e)));
         }
+      } else {
+        LOG.warn("Dropping unnecessary artifact chunk for {} because it's already in the cache", name);
       }
     }
 
@@ -274,6 +339,10 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
 
     @Override
     public void onCompleted() {
+      // If we already sent the response (because the artifact was already in the cache), the
+      // connection has been closed and there's nothing to be done here
+      if (responseSent) return;
+
       // Close the stream.
       LOG.info("Staging artifact completed for " + artifactId);
       if (artifactWritableByteChannel != null) {
@@ -284,18 +353,35 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
           return;
         }
       }
-      String expectedMd5 = metadata.getMetadata().getMd5();
-      if (expectedMd5 != null && !expectedMd5.isEmpty()) {
-        String actualMd5 = Base64.getEncoder().encodeToString(hasher.hash().asBytes());
-        if (!actualMd5.equals(expectedMd5)) {
+
+      String actualMd5 = Base64.getEncoder().encodeToString(hasher.hash().asBytes());
+      if (md5 != null && !md5.isEmpty()) {
+        if (!actualMd5.equals(md5)) {
           outboundObserver.onError(
               new StatusRuntimeException(
                   Status.INVALID_ARGUMENT.withDescription(
                       String.format(
                           "Artifact %s is corrupt: expected md5 %s, but has md5 %s",
-                          metadata.getMetadata().getName(), expectedMd5, actualMd5))));
+                          name, md5, actualMd5))));
           return;
         }
+      }
+      md5 = actualMd5;
+      Location location =
+          Location.newBuilder()
+                  .setName(name)
+                  .setUri(
+                      getArtifactDirResourceId(stagingSessionToken)
+                          .resolve(
+                              encodedFileName(metadata), StandardResolveOptions.RESOLVE_FILE)
+                          .toString())
+                  .build();
+      hashedLocations.put(md5, location);
+      try {
+        nameHashes.put(KV.of(stagingSessionToken.encode(), name), md5);
+      } catch (JsonProcessingException e) {
+        outboundObserver.onError(e);
+        return;
       }
       outboundObserver.onNext(PutArtifactResponse.newBuilder().build());
       outboundObserver.onCompleted();
@@ -327,6 +413,29 @@ public class BeamFileSystemArtifactStagingService extends ArtifactStagingService
 
     private void setBasePath(String basePath) {
       this.basePath = basePath;
+    }
+
+    public String encode() throws JsonProcessingException {
+      try {
+        return MAPPER.writeValueAsString(this);
+      } catch (JsonProcessingException e) {
+        LOG.error("Error {} occurred while serializing {}.", e.getMessage(), this);
+        throw e;
+      }
+    }
+
+    public static StagingSessionToken decode(String stagingSessionToken) throws Exception {
+      try {
+        return MAPPER.readValue(stagingSessionToken, StagingSessionToken.class);
+      } catch (JsonProcessingException e) {
+        String message =
+            String.format(
+                "Unable to deserialize staging token %s. Expected format: %s. Error: %s",
+                stagingSessionToken,
+                "{\"sessionId\": \"sessionId\", \"basePath\": \"basePath\"}",
+                e.getMessage());
+        throw new StatusRuntimeException(Status.INVALID_ARGUMENT.withDescription(message));
+      }
     }
 
     @Override

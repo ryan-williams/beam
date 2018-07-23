@@ -128,6 +128,9 @@ message PutArtifactRequest {
 }
 
 message PutArtifactResponse {
+  // (Optional) If true, indicates that the artifact is present in the staging service (e.g. from
+  // the MD5 hash in the PutArtifactMetadata) and sending subsequent ArtifactChunks is unnecessary
+  bool cache_hit = 1;
 }
 
 // A request to commit the manifest for a Job. All artifacts must have been successfully uploaded
