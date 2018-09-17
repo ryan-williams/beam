@@ -24,7 +24,7 @@ import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.StreamingOptions;
-import org.apache.flink.runtime.state.AbstractStateBackend;
+import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 
 /** Options which can be used to configure a Flink PipelineRunner. */
@@ -86,6 +86,12 @@ public interface FlinkPipelineOptions
 
   void setCheckpointTimeoutMillis(Long checkpointTimeoutMillis);
 
+  @Description("The minimal pause before the next checkpoint is triggered.")
+  @Default.Long(-1L)
+  Long getMinPauseBetweenCheckpoints();
+
+  void setMinPauseBetweenCheckpoints(Long minPauseInterval);
+
   @Description(
       "Sets the number of times that failed tasks are re-executed. "
           + "A value of zero effectively disables fault tolerance. A value of -1 indicates "
@@ -117,9 +123,9 @@ public interface FlinkPipelineOptions
       "Sets the state backend to use in streaming mode. "
           + "Otherwise the default is read from the Flink config.")
   @JsonIgnore
-  AbstractStateBackend getStateBackend();
+  StateBackend getStateBackend();
 
-  void setStateBackend(AbstractStateBackend stateBackend);
+  void setStateBackend(StateBackend stateBackend);
 
   @Description("Enable/disable Beam metrics in Flink Runner")
   @Default.Boolean(true)
@@ -167,4 +173,12 @@ public interface FlinkPipelineOptions
   Boolean isShutdownSourcesOnFinalWatermark();
 
   void setShutdownSourcesOnFinalWatermark(Boolean shutdownOnFinalWatermark);
+
+  @Description(
+      "Interval in milliseconds for sending latency tracking marks from the sources to the sinks. "
+          + "Interval value <= 0 disables the feature.")
+  @Default.Long(0)
+  Long getLatencyTrackingInterval();
+
+  void setLatencyTrackingInterval(Long interval);
 }

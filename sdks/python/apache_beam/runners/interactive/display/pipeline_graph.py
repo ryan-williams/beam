@@ -93,15 +93,7 @@ class PipelineGraph(object):
                           default_edge_attrs)
 
   def get_dot(self):
-    return str(self._get_graph())
-
-  def display_graph(self):
-    """Displays graph via IPython or prints DOT if not possible."""
-    try:
-      from IPython.core import display  # pylint: disable=import-error
-      display.display(display.HTML(self._get_graph().create_svg()))  # pylint: disable=protected-access
-    except ImportError:
-      print(str(self._get_graph()))
+    return self._get_graph().to_string()
 
   def _top_level_transforms(self):
     """Yields all top level PTransforms (subtransforms of the root PTransform).
@@ -193,8 +185,12 @@ class PipelineGraph(object):
         vertex_ref = pydot.Node(vertex, **vertex_attrs)
         self._vertex_refs[vertex] = vertex_ref
         self._graph.add_node(vertex_ref)
+
       for edge, edge_attrs in edge_dict.items():
-        edge_ref = pydot.Edge(edge[0], edge[1], **edge_attrs)
+        vertex_src = self._vertex_refs[edge[0]]
+        vertex_dst = self._vertex_refs[edge[1]]
+
+        edge_ref = pydot.Edge(vertex_src, vertex_dst, **edge_attrs)
         self._edge_refs[edge] = edge_ref
         self._graph.add_edge(edge_ref)
 
