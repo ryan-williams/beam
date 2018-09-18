@@ -57,11 +57,16 @@ import org.apache.beam.sdk.util.ThrowingSupplier;
 import org.apache.beam.vendor.grpc.v1.io.grpc.Channel;
 import org.apache.beam.vendor.grpc.v1.io.grpc.stub.StreamObserver;
 import org.apache.beam.vendor.protobuf.v3.com.google.protobuf.ByteString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A client to stage files on an {@link ArtifactStagingServiceGrpc ArtifactService}. */
 public class ArtifactServiceStager {
   // 2 MB per file-request
   private static final int DEFAULT_BUFFER_SIZE = 2 * 1024 * 1024;
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ArtifactServiceStager.class);
 
   public static ArtifactServiceStager overChannel(Channel channel) {
     return overChannel(channel, DEFAULT_BUFFER_SIZE);
@@ -184,6 +189,9 @@ public class ArtifactServiceStager {
       if (responseObserver.err.get() != null) {
         throw new RuntimeException(responseObserver.err.get());
       }
+
+      LOG.info("Staged file {} as {}", this.file.getFile().toString(), this.file.getStagingName());
+
       return metadata.toBuilder().setMd5(BaseEncoding.base64().encode(md5Digest.digest())).build();
     }
 
