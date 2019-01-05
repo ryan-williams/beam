@@ -31,6 +31,7 @@ option java_outer_classname = "JobApi";
 
 import "beam_runner_api.proto";
 import "endpoints.proto";
+import "metrics.proto";
 import "google/protobuf/struct.proto";
 
 
@@ -152,11 +153,6 @@ message JobMessage {
     JOB_MESSAGE_WARNING = 4;
     JOB_MESSAGE_ERROR = 5;
   }
-}
-
-message MetricStatus {
-  org.apache.beam.model.pipeline.v1.MetricKey key = 1;
-  org.apache.beam.model.pipeline.v1.Metric metric = 2;
 }
 
 message GetJobMetricsRequest {

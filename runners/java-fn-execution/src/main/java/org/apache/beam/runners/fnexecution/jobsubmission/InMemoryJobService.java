@@ -38,7 +38,14 @@ import org.apache.beam.model.jobmanagement.v1.JobApi.PrepareJobResponse;
 import org.apache.beam.model.jobmanagement.v1.JobApi.RunJobRequest;
 import org.apache.beam.model.jobmanagement.v1.JobApi.RunJobResponse;
 import org.apache.beam.model.jobmanagement.v1.JobServiceGrpc;
+import org.apache.beam.model.jobmanagement.v1.Metrics.CounterResult;
+import org.apache.beam.model.jobmanagement.v1.Metrics.DistributionResult;
+import org.apache.beam.model.jobmanagement.v1.Metrics.MetricKey;
+import org.apache.beam.model.jobmanagement.v1.Metrics.MetricName;
+import org.apache.beam.model.jobmanagement.v1.Metrics.MetricResult;
+import org.apache.beam.model.jobmanagement.v1.Metrics.MetricStatus;
 import org.apache.beam.model.pipeline.v1.Endpoints;
+import org.apache.beam.model.pipeline.v1.RunnerApi.IntDistributionData;
 import org.apache.beam.runners.core.construction.graph.PipelineValidator;
 import org.apache.beam.runners.fnexecution.FnService;
 import org.apache.beam.sdk.fn.function.ThrowingConsumer;
@@ -321,7 +328,64 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
       GetJobMetricsResponse.Builder builder = GetJobMetricsResponse.newBuilder();
       if (metrics != null) {
         MetricQueryResults results = metrics.queryMetrics(MetricsFilter.builder().build());
-        //results.getCounters()
+        results.getCounters().forEach(
+            counter ->
+                builder.addMetricStatuses(
+                    MetricStatus.newBuilder()
+                                .setKey(
+                                    MetricKey.newBuilder()
+                                             .setStep(counter.getStep())
+                                             .setName(
+                                                 MetricName.newBuilder()
+                                                           .setNamespace(counter.getName().getNamespace())
+                                                           .setName(counter.getName().getName())
+                                             )
+                                )
+                                .setMetric(
+                                    MetricResult.newBuilder()
+                                                .setCounterValue(
+                                                    CounterResult.newBuilder()
+                                                                 .setAttempted(counter.getAttempted())
+                                                                 .setCommitted(counter.getCommitted())
+                                                )
+                                )
+                )
+        );
+        results.getDistributions().forEach(
+            distribution ->
+                builder.addMetricStatuses(
+                    MetricStatus.newBuilder()
+                                .setKey(
+                                    MetricKey.newBuilder()
+                                             .setStep(distribution.getStep())
+                                             .setName(
+                                                 MetricName.newBuilder()
+                                                           .setNamespace(distribution.getName().getNamespace())
+                                                           .setName(distribution.getName().getName())
+                                             )
+                                )
+                                .setMetric(
+                                    MetricResult.newBuilder()
+                                                .setDistributionValue(
+                                                    DistributionResult.newBuilder()
+                                                                      .setAttempted(
+                                                                          IntDistributionData.newBuilder()
+                                                                                             .setMin(distribution.getAttempted().getMin())
+                                                                                             .setMax(distribution.getAttempted().getMax())
+                                                                                             .setCount(distribution.getAttempted().getCount())
+                                                                                             .setSum(distribution.getAttempted().getSum())
+                                                                      )
+                                                                      .setCommitted(
+                                                                          IntDistributionData.newBuilder()
+                                                                                             .setMin(distribution.getCommitted().getMin())
+                                                                                             .setMax(distribution.getCommitted().getMax())
+                                                                                             .setCount(distribution.getCommitted().getCount())
+                                                                                             .setSum(distribution.getCommitted().getSum())
+                                                                      )
+                                                )
+                                )
+                )
+        );
       }
       responseObserver.onNext(builder.build());
     } catch (Exception e) {
