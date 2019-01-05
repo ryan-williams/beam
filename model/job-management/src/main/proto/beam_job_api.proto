@@ -54,6 +54,8 @@ service JobService {
 
   // Subscribe to a stream of state changes and messages from the job
   rpc GetMessageStream (JobMessagesRequest) returns (stream JobMessagesResponse);
+
+  rpc GetJobMetrics (GetJobMetricsRequest) returns (GetJobMetricsResponse);
 }
 
 
@@ -134,7 +136,6 @@ message GetJobStateResponse {
 // the job ended.
 message JobMessagesRequest {
   string job_id = 1; // (required)
-
 }
 
 message JobMessage {
@@ -151,6 +152,28 @@ message JobMessage {
     JOB_MESSAGE_WARNING = 4;
     JOB_MESSAGE_ERROR = 5;
   }
+}
+
+message MetricStatus {
+  org.apache.beam.model.pipeline.v1.MetricKey key = 1;
+  org.apache.beam.model.pipeline.v1.Metric metric = 2;
+}
+
+message GetJobMetricsRequest {
+  string job_id = 1; // (required)
+}
+
+//message NamespacedMetrics {
+//  map<string, org.apache.beam.model.fn_execution.v1.Metric> metrics = 1;
+//}
+//
+//message StepMetrics {
+//  map<string, NamespacedMetrics> namespaced_metrics = 1;
+//}
+
+message GetJobMetricsResponse {
+  repeated MetricStatus metric_statuses = 1;
+//  map<string, StepMetrics> steps = 2;
 }
 
 message JobMessagesResponse {

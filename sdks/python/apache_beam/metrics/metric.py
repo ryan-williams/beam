@@ -151,6 +151,7 @@ class MetricResults(object):
 
   @staticmethod
   def _matches_sub_path(actual_scope, filter_scope):
+    # TODO: this erroneously fails if the first substring-match is not a full-step-name match
     start_pos = actual_scope.find(filter_scope)
     end_pos = start_pos + len(filter_scope)
 

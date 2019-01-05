@@ -22,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.apache.beam.model.jobmanagement.v1.JobApi.GetJobMetricsRequest;
+import org.apache.beam.model.jobmanagement.v1.JobApi.GetJobMetricsResponse;
 import org.apache.beam.model.jobmanagement.v1.JobApi.CancelJobRequest;
 import org.apache.beam.model.jobmanagement.v1.JobApi.CancelJobResponse;
 import org.apache.beam.model.jobmanagement.v1.JobApi.GetJobStateRequest;
@@ -40,6 +43,9 @@ import org.apache.beam.runners.core.construction.graph.PipelineValidator;
 import org.apache.beam.runners.fnexecution.FnService;
 import org.apache.beam.sdk.fn.function.ThrowingConsumer;
 import org.apache.beam.sdk.fn.stream.SynchronizedStreamObserver;
+import org.apache.beam.sdk.metrics.MetricQueryResults;
+import org.apache.beam.sdk.metrics.MetricResults;
+import org.apache.beam.sdk.metrics.MetricsFilter;
 import org.apache.beam.vendor.grpc.v1p13p1.com.google.protobuf.Struct;
 import org.apache.beam.vendor.grpc.v1p13p1.io.grpc.Status;
 import org.apache.beam.vendor.grpc.v1p13p1.io.grpc.StatusException;
@@ -255,11 +261,9 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
     String invocationId = request.getJobId();
     try {
       JobInvocation invocation = getInvocation(invocationId);
-      Function<JobState.Enum, GetJobStateResponse> responseFunction =
-          state -> GetJobStateResponse.newBuilder().setState(state).build();
       Consumer<JobState.Enum> stateListener =
           state -> {
-            responseObserver.onNext(responseFunction.apply(state));
+            responseObserver.onNext(GetJobStateResponse.newBuilder().setState(state).build());
             if (JobInvocation.isTerminated(state)) {
               responseObserver.onCompleted();
             }
@@ -300,6 +304,26 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
 
       invocation.addStateListener(stateListener);
       invocation.addMessageListener(messageListener);
+    } catch (Exception e) {
+      String errMessage =
+          String.format("Encountered Unexpected Exception for Invocation %s", invocationId);
+      LOG.error(errMessage, e);
+      responseObserver.onError(Status.INTERNAL.withCause(e).asException());
+    }
+  }
+
+  @Override
+  public void getJobMetrics(GetJobMetricsRequest request, StreamObserver<GetJobMetricsResponse> responseObserver) {
+    String invocationId = request.getJobId();
+    try {
+      JobInvocation invocation = getInvocation(invocationId);
+      MetricResults metrics = invocation.getMetrics();
+      GetJobMetricsResponse.Builder builder = GetJobMetricsResponse.newBuilder();
+      if (metrics != null) {
+        MetricQueryResults results = metrics.queryMetrics(MetricsFilter.builder().build());
+        //results.getCounters()
+      }
+      responseObserver.onNext(builder.build());
     } catch (Exception e) {
       String errMessage =
           String.format("Encountered Unexpected Exception for Invocation %s", invocationId);

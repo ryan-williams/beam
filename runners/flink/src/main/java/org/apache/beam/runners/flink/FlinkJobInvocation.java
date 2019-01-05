@@ -44,12 +44,14 @@ import org.apache.beam.runners.core.construction.graph.GreedyPipelineFuser;
 import org.apache.beam.runners.fnexecution.jobsubmission.JobInvocation;
 import org.apache.beam.runners.fnexecution.provisioning.JobInfo;
 import org.apache.beam.sdk.PipelineResult;
+import org.apache.beam.sdk.metrics.MetricResults;
 import org.apache.beam.sdk.metrics.MetricsEnvironment;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Invocation of a Flink Job via {@link FlinkRunner}. */
+@SuppressWarnings("ALL")
 public class FlinkJobInvocation implements JobInvocation {
   private static final Logger LOG = LoggerFactory.getLogger(FlinkJobInvocation.class);
 
@@ -75,6 +77,7 @@ public class FlinkJobInvocation implements JobInvocation {
   private JobState.Enum jobState;
   private List<Consumer<JobState.Enum>> stateObservers;
   private List<Consumer<JobMessage>> messageObservers;
+  private MetricResults metrics;
 
   @Nullable private ListenableFuture<PipelineResult> invocationFuture;
 
@@ -191,6 +194,9 @@ public class FlinkJobInvocation implements JobInvocation {
                   pipelineResult.getState() == PipelineResult.State.DONE,
                   "Success on non-Done state: " + pipelineResult.getState());
               setState(JobState.Enum.DONE);
+              try {
+                metrics = pipelineResult.metrics();
+              } catch (UnsupportedOperationException e) {}
             } else {
               setState(JobState.Enum.UNSPECIFIED);
             }
@@ -250,6 +256,11 @@ public class FlinkJobInvocation implements JobInvocation {
   @Override
   public JobState.Enum getState() {
     return this.jobState;
+  }
+
+  @Override
+  public MetricResults getMetrics() {
+    return metrics;
   }
 
   @Override

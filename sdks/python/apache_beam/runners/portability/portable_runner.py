@@ -27,6 +27,9 @@ from concurrent import futures
 import grpc
 
 from apache_beam import metrics
+from apache_beam.metrics.metric import MetricResults
+from apache_beam.metrics.metricbase import MetricName
+from apache_beam.metrics.execution import MetricKey
 from apache_beam.options.pipeline_options import PortableOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.options.pipeline_options import StandardOptions
@@ -225,13 +228,36 @@ class PortableRunner(runner.PipelineRunner):
 
 
 class PortableMetrics(metrics.metric.MetricResults):
-  def __init__(self):
-    pass
+  def __init__(self, metric_statuses):
+    self.counters = {}
+    self.distributions = {}
+    self.gauges = {}
+    for metric_status in metric_statuses:
+      job_api_key = metric_status.key
+      key = MetricKey(job_api_key.step, MetricName(job_api_key.namespace, job_api_key.name))
+
+      job_api_metric = metric_status.metric
+      if job_api_metric.has_counter_data():
+        self.counters[key] = job_api_metric.counter_data
+      elif job_api_metric.has_distribution_data():
+        self.distributions[key] = job_api_metric.distribution_data
+      else:
+        self.gauges[key] = job_api_metric.gauge_data
+
+  @staticmethod
+  def _query_type(filter, metrics):
+    return [
+      data
+      for key, data in metrics.items()
+      if MetricResults.matches(filter, key)
+    ]
 
   def query(self, filter=None):
-    return {'counters': [],
-            'distributions': [],
-            'gauges': []}
+    return {
+      'counters': self._query_type(filter, self.counters),
+      'distributions': self._query_type(filter, self.distributions),
+      'gauges': self._query_type(filter, self.gauges)
+    }
 
 
 class PipelineResult(runner.PipelineResult):
@@ -242,6 +268,7 @@ class PipelineResult(runner.PipelineResult):
     self._job_id = job_id
     self._messages = []
     self._cleanup_callbacks = cleanup_callbacks
+    self._metrics = None
 
   def cancel(self):
     try:
@@ -267,7 +294,10 @@ class PipelineResult(runner.PipelineResult):
     return beam_job_api_pb2.JobState.Enum.Value(pipeline_state)
 
   def metrics(self):
-    return PortableMetrics()
+    if not self._metrics:
+      job_metrics_response = self._job_service.GetJobMetrics(beam_job_api_pb2.JobMetricsRequest(job_id=self._job_id))
+      self._metrics = PortableMetrics(job_metrics_response.metric_statuses)
+    return self._metrics
 
   def _last_error_message(self):
     # Python sort is stable.

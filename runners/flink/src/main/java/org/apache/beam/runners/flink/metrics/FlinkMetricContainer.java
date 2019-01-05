@@ -24,7 +24,12 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi;
+import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfo;
+import org.apache.beam.model.pipeline.v1.RunnerApi.Metric;
+import org.apache.beam.model.pipeline.v1.RunnerApi.CounterData;
+import org.apache.beam.model.pipeline.v1.RunnerApi.DistributionData;
+import org.apache.beam.model.pipeline.v1.RunnerApi.ExtremaData;
+import org.apache.beam.model.pipeline.v1.RunnerApi.IntDistributionData;
 import org.apache.beam.runners.core.metrics.MetricsContainerImpl;
 import org.apache.beam.runners.core.metrics.MetricsContainerStepMap;
 import org.apache.beam.sdk.metrics.Distribution;
@@ -109,17 +114,17 @@ public class FlinkMetricContainer {
     return MetricName.named(pieces[0], pieces[1]);
   }
 
-  public void updateMetrics(String stepName, List<BeamFnApi.MonitoringInfo> monitoringInfos) {
+  public void updateMetrics(String stepName, List<MonitoringInfo> monitoringInfos) {
     MetricsContainer metricsContainer = getMetricsContainer(stepName);
     monitoringInfos.forEach(
         monitoringInfo -> {
           if (monitoringInfo.hasMetric()) {
             String urn = monitoringInfo.getUrn();
             MetricName metricName = parseUrn(urn);
-            BeamFnApi.Metric metric = monitoringInfo.getMetric();
+            Metric metric = monitoringInfo.getMetric();
             if (metric.hasCounterData()) {
-              BeamFnApi.CounterData counterData = metric.getCounterData();
-              if (counterData.getValueCase() == BeamFnApi.CounterData.ValueCase.INT64_VALUE) {
+              CounterData counterData = metric.getCounterData();
+              if (counterData.getValueCase() == CounterData.ValueCase.INT64_VALUE) {
                 org.apache.beam.sdk.metrics.Counter counter =
                     metricsContainer.getCounter(metricName);
                 counter.inc(counterData.getInt64Value());
@@ -127,10 +132,10 @@ public class FlinkMetricContainer {
                 LOG.warn("Unsupported CounterData type: {}", counterData);
               }
             } else if (metric.hasDistributionData()) {
-              BeamFnApi.DistributionData distributionData = metric.getDistributionData();
+              DistributionData distributionData = metric.getDistributionData();
               if (distributionData.hasIntDistributionData()) {
                 Distribution distribution = metricsContainer.getDistribution(metricName);
-                BeamFnApi.IntDistributionData intDistributionData =
+                IntDistributionData intDistributionData =
                     distributionData.getIntDistributionData();
                 distribution.update(
                     intDistributionData.getSum(),
@@ -141,7 +146,7 @@ public class FlinkMetricContainer {
                 LOG.warn("Unsupported DistributionData type: {}", distributionData);
               }
             } else if (metric.hasExtremaData()) {
-              BeamFnApi.ExtremaData extremaData = metric.getExtremaData();
+              ExtremaData extremaData = metric.getExtremaData();
               LOG.warn("Extrema metric unsupported: {}", extremaData);
             }
           }
