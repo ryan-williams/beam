@@ -17,6 +17,10 @@
  */
 package org.apache.beam.runners.reference;
 
+import static org.apache.beam.runners.core.metrics.Protos.fromProto;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +32,16 @@ import org.apache.beam.model.jobmanagement.v1.JobApi.CancelJobResponse;
 import org.apache.beam.model.jobmanagement.v1.JobApi.GetJobStateRequest;
 import org.apache.beam.model.jobmanagement.v1.JobApi.GetJobStateResponse;
 import org.apache.beam.model.jobmanagement.v1.JobServiceGrpc.JobServiceBlockingStub;
+import org.apache.beam.model.jobmanagement.v1.JobApiMetrics;
+import org.apache.beam.runners.core.construction.metrics.MetricFiltering;
+import org.apache.beam.runners.core.construction.metrics.MetricKey;
 import org.apache.beam.sdk.PipelineResult;
+import org.apache.beam.sdk.metrics.DistributionResult;
+import org.apache.beam.sdk.metrics.GaugeResult;
+import org.apache.beam.sdk.metrics.MetricQueryResults;
+import org.apache.beam.sdk.metrics.MetricResult;
 import org.apache.beam.sdk.metrics.MetricResults;
+import org.apache.beam.sdk.metrics.MetricsFilter;
 import org.apache.beam.vendor.grpc.v1p13p1.com.google.protobuf.ByteString;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
@@ -121,7 +133,76 @@ class JobServicePipelineResult implements PipelineResult, AutoCloseable {
 
   @Override
   public MetricResults metrics() {
-    throw new UnsupportedOperationException("Not yet implemented.");
+    JobApi.GetJobMetricsResponse response =
+        jobService
+            .get()
+            .getJobMetrics(
+                JobApi.GetJobMetricsRequest.newBuilder()
+                                           .setJobId(jobId.toStringUtf8())  // TODO: is this the right way to convert a ByteString to a String in this context?
+                                           .build()
+            );
+    List<JobApiMetrics.MetricStatus> statuses = response.getMetricStatusesList();
+    List<MetricResult<Long>> counters = new ArrayList<>();
+    List<MetricResult<DistributionResult>> distributions = new ArrayList<>();
+    List<MetricResult<GaugeResult>> gauges = new ArrayList<>();  // TODO: plumb gauges through these metrics
+    statuses.forEach(
+        status -> {
+            JobApiMetrics.MetricKey key = status.getKey();
+            JobApiMetrics.MetricResult metricResult = status.getMetric();
+            if (metricResult.hasCounterValue()) {
+              JobApiMetrics.CounterResult counterResult = metricResult.getCounterValue();
+              counters.add(
+                  MetricResult.create(
+                      fromProto(key.getName()),
+                      key.getStep(),
+                      counterResult.getCommitted(),
+                      counterResult.getAttempted()
+                  )
+              );
+            } else {
+              assert(metricResult.hasDistributionValue());
+              JobApiMetrics.DistributionResult distributionResult = metricResult.getDistributionValue();
+              distributions.add(
+                  MetricResult.create(
+                      fromProto(key.getName()),
+                      key.getStep(),
+                      fromProto(distributionResult.getCommitted()),
+                      fromProto(distributionResult.getAttempted())
+                  )
+              );
+            }
+        }
+    );
+    return new MetricResults() {
+      @Override
+      public MetricQueryResults queryMetrics(@Nullable MetricsFilter filter) {
+        List<MetricResult<Long>> counterResults = new ArrayList<>();
+        List<MetricResult<DistributionResult>> distributionResults = new ArrayList<>();
+        List<MetricResult<GaugeResult>> gaugeResults = new ArrayList<>();
+        counters.forEach(
+            counter -> {
+              if (MetricFiltering.matches(filter, MetricKey.create(counter.getStep(), counter.getName()))) {
+                counterResults.add(counter);
+              }
+            }
+        );
+        distributions.forEach(
+            distribution -> {
+              if (MetricFiltering.matches(filter, MetricKey.create(distribution.getStep(), distribution.getName()))) {
+                distributionResults.add(distribution);
+              }
+            }
+        );
+        gauges.forEach(
+            gauge -> {
+              if (MetricFiltering.matches(filter, MetricKey.create(gauge.getStep(), gauge.getName()))) {
+                gaugeResults.add(gauge);
+              }
+            }
+        );
+        return MetricQueryResults.create(counterResults, distributionResults, gaugeResults);
+      }
+    };
   }
 
   @Override
