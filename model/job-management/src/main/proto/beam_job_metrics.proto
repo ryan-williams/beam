@@ -26,9 +26,9 @@ package org.apache.beam.model.job_management.v1;
 
 option go_package = "jobmanagement_v1";
 option java_package = "org.apache.beam.model.jobmanagement.v1";
-option java_outer_classname = "Metrics";
+option java_outer_classname = "JobApiMetrics";
 
-import "beam_runner_api.proto";
+import "beam_pipeline_metrics.proto";
 
 message MetricKey {
     string step = 1;

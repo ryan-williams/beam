@@ -31,7 +31,7 @@ option java_outer_classname = "JobApi";
 
 import "beam_runner_api.proto";
 import "endpoints.proto";
-import "metrics.proto";
+import "beam_job_metrics.proto";
 import "google/protobuf/struct.proto";
 
 

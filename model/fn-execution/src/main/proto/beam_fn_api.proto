@@ -38,6 +38,7 @@ option go_package = "fnexecution_v1";
 option java_package = "org.apache.beam.model.fnexecution.v1";
 option java_outer_classname = "BeamFnApi";
 
+import "beam_pipeline_metrics.proto";
 import "beam_runner_api.proto";
 import "endpoints.proto";
 import "google/protobuf/descriptor.proto";

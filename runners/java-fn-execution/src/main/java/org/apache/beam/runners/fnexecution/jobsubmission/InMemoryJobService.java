@@ -17,6 +17,9 @@
  */
 package org.apache.beam.runners.fnexecution.jobsubmission;
 
+import static org.apache.beam.runners.core.metrics.Protos.keyFromProto;
+import static org.apache.beam.runners.core.metrics.Protos.fromProto;
+
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -38,14 +41,10 @@ import org.apache.beam.model.jobmanagement.v1.JobApi.PrepareJobResponse;
 import org.apache.beam.model.jobmanagement.v1.JobApi.RunJobRequest;
 import org.apache.beam.model.jobmanagement.v1.JobApi.RunJobResponse;
 import org.apache.beam.model.jobmanagement.v1.JobServiceGrpc;
-import org.apache.beam.model.jobmanagement.v1.Metrics.CounterResult;
-import org.apache.beam.model.jobmanagement.v1.Metrics.DistributionResult;
-import org.apache.beam.model.jobmanagement.v1.Metrics.MetricKey;
-import org.apache.beam.model.jobmanagement.v1.Metrics.MetricName;
-import org.apache.beam.model.jobmanagement.v1.Metrics.MetricResult;
-import org.apache.beam.model.jobmanagement.v1.Metrics.MetricStatus;
+import org.apache.beam.model.jobmanagement.v1.JobApiMetrics.CounterResult;
+import org.apache.beam.model.jobmanagement.v1.JobApiMetrics.MetricResult;
+import org.apache.beam.model.jobmanagement.v1.JobApiMetrics.MetricStatus;
 import org.apache.beam.model.pipeline.v1.Endpoints;
-import org.apache.beam.model.pipeline.v1.RunnerApi.IntDistributionData;
 import org.apache.beam.runners.core.construction.graph.PipelineValidator;
 import org.apache.beam.runners.fnexecution.FnService;
 import org.apache.beam.sdk.fn.function.ThrowingConsumer;
@@ -332,15 +331,7 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
             counter ->
                 builder.addMetricStatuses(
                     MetricStatus.newBuilder()
-                                .setKey(
-                                    MetricKey.newBuilder()
-                                             .setStep(counter.getStep())
-                                             .setName(
-                                                 MetricName.newBuilder()
-                                                           .setNamespace(counter.getName().getNamespace())
-                                                           .setName(counter.getName().getName())
-                                             )
-                                )
+                                .setKey(keyFromProto(counter))
                                 .setMetric(
                                     MetricResult.newBuilder()
                                                 .setCounterValue(
@@ -355,34 +346,10 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
             distribution ->
                 builder.addMetricStatuses(
                     MetricStatus.newBuilder()
-                                .setKey(
-                                    MetricKey.newBuilder()
-                                             .setStep(distribution.getStep())
-                                             .setName(
-                                                 MetricName.newBuilder()
-                                                           .setNamespace(distribution.getName().getNamespace())
-                                                           .setName(distribution.getName().getName())
-                                             )
-                                )
+                                .setKey(keyFromProto(distribution))
                                 .setMetric(
                                     MetricResult.newBuilder()
-                                                .setDistributionValue(
-                                                    DistributionResult.newBuilder()
-                                                                      .setAttempted(
-                                                                          IntDistributionData.newBuilder()
-                                                                                             .setMin(distribution.getAttempted().getMin())
-                                                                                             .setMax(distribution.getAttempted().getMax())
-                                                                                             .setCount(distribution.getAttempted().getCount())
-                                                                                             .setSum(distribution.getAttempted().getSum())
-                                                                      )
-                                                                      .setCommitted(
-                                                                          IntDistributionData.newBuilder()
-                                                                                             .setMin(distribution.getCommitted().getMin())
-                                                                                             .setMax(distribution.getCommitted().getMax())
-                                                                                             .setCount(distribution.getCommitted().getCount())
-                                                                                             .setSum(distribution.getCommitted().getSum())
-                                                                      )
-                                                )
+                                                .setDistributionValue(fromProto(distribution))
                                 )
                 )
         );
