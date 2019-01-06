@@ -114,12 +114,13 @@ def portableValidatesRunnerTask(String name, Boolean streaming) {
       parallelism: 2,
       pipelineOpts: streaming ? ["--streaming"] : [],
       testCategories: {
-        includeCategories 'org.apache.beam.sdk.testing.ValidatesRunner'
+//        includeCategories 'org.apache.beam.sdk.testing.ValidatesRunner'
+        includeCategories 'org.apache.beam.sdk.testing.Foo'
         excludeCategories 'org.apache.beam.sdk.testing.FlattenWithHeterogeneousCoders'
         excludeCategories 'org.apache.beam.sdk.testing.LargeKeys$Above100MB'
-        excludeCategories 'org.apache.beam.sdk.testing.UsesAttemptedMetrics'
+        //excludeCategories 'org.apache.beam.sdk.testing.UsesAttemptedMetrics'
         excludeCategories 'org.apache.beam.sdk.testing.UsesCommittedMetrics'
-        excludeCategories 'org.apache.beam.sdk.testing.UsesCounterMetrics'
+//        excludeCategories 'org.apache.beam.sdk.testing.UsesCounterMetrics'
         excludeCategories 'org.apache.beam.sdk.testing.UsesCustomWindowMerging'
         excludeCategories 'org.apache.beam.sdk.testing.UsesDistributionMetrics'
         excludeCategories 'org.apache.beam.sdk.testing.UsesFailureMessage'

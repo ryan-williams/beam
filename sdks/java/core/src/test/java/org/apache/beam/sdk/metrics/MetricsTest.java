@@ -30,6 +30,7 @@ import java.io.Serializable;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.GenerateSequence;
 import org.apache.beam.sdk.testing.DataflowPortabilityApiUnsupported;
+import org.apache.beam.sdk.testing.Foo;
 import org.apache.beam.sdk.testing.NeedsRunner;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.testing.UsesAttemptedMetrics;
@@ -352,7 +353,7 @@ public class MetricsTest implements Serializable {
       assertAllMetrics(metrics, false);
     }
 
-    @Category({ValidatesRunner.class, UsesAttemptedMetrics.class, UsesCounterMetrics.class})
+    @Category({ValidatesRunner.class, UsesAttemptedMetrics.class, UsesCounterMetrics.class, Foo.class})
     @Test
     public void testAttemptedCounterMetrics() {
       PipelineResult result = runPipelineWithMetrics();
