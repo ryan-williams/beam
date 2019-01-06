@@ -45,7 +45,7 @@ def disableSpotlessCheck = project.hasProperty('disableSpotlessCheck') &&
         project.disableSpotlessCheck == 'true'
 
 spotless {
-  enforceCheck !disableSpotlessCheck
+  enforceCheck false //!disableSpotlessCheck
   groovy {
     excludeJava()
     greclipse().configFile('greclipse.properties')
