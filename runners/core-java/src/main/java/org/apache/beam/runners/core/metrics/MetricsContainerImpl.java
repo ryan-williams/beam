@@ -150,6 +150,7 @@ public class MetricsContainerImpl implements Serializable, MetricsContainer {
           mu.getKey().metricName().getNamespace(), mu.getKey().metricName().getName());
       builder.setInt64Value(mu.getUpdate());
       builder.setTimestampToNow();
+      builder.setPTransformLabel(stepName);
       monitoringInfos.add(builder.build());
     }
     return monitoringInfos;

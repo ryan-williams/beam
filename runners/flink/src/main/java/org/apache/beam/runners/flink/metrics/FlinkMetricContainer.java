@@ -17,6 +17,7 @@
  */
 package org.apache.beam.runners.flink.metrics;
 
+import static org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfo.MonitoringInfoLabels.TRANSFORM;
 import static org.apache.beam.runners.core.metrics.MetricUrns.parseUrn;
 import static org.apache.beam.runners.core.metrics.MetricsContainerStepMap.asAttemptedOnlyMetricResults;
 import static org.apache.beam.runners.core.metrics.SimpleMonitoringInfoBuilder.USER_COUNTER_URN_PREFIX;
@@ -25,6 +26,8 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.beam.model.fnexecution.v1.BeamFnApi;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfo;
 import org.apache.beam.model.pipeline.v1.PipelineMetrics.Metric;
 import org.apache.beam.model.pipeline.v1.PipelineMetrics.CounterData;
@@ -96,11 +99,17 @@ public class FlinkMetricContainer {
   }
 
   public void updateMetrics(String stepName, List<MonitoringInfo> monitoringInfos) {
-    MetricsContainer metricsContainer = getMetricsContainer(stepName);
+    //MetricsContainer metricsContainer = getMetricsContainer(stepName);
     monitoringInfos.forEach(
         monitoringInfo -> {
           if (monitoringInfo.hasMetric()) {
             String urn = monitoringInfo.getUrn();
+            Map<String, String> labels = monitoringInfo.getLabelsMap();
+            String ptransform = labels.get(TRANSFORM.getValueDescriptor().getOptions().getExtension(BeamFnApi.labelProps).getName());
+            if (ptransform == null) {
+              LOG.error("No ptransform label found on monitoringinfo {}", monitoringInfo);
+            }
+            MetricsContainer metricsContainer = getMetricsContainer(ptransform);
             MetricName metricName = parseUrn(urn);
             Metric metric = monitoringInfo.getMetric();
             if (metric.hasCounterData()) {
