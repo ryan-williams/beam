@@ -39,6 +39,11 @@ public abstract class DefaultMetricResult<T> implements MetricResult<T> {
   @Override
   public abstract T getAttempted();
 
+  @Override
+  public String toString() {
+    return String.format("MetricResult(step = %s, name = %s, attempted = %s, committed = %s)", getStep(), getName(), getAttempted(), getCommitted());
+  }
+
   public static <T> DefaultMetricResult<T> create(
       MetricName name, String step, T committed, T attempted) {
     return new AutoValue_DefaultMetricResult<>(name, step, committed, attempted);
