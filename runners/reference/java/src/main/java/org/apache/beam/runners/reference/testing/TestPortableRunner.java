@@ -30,6 +30,7 @@ import org.apache.beam.sdk.options.PortablePipelineOptions;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.util.InstanceBuilder;
 import org.hamcrest.Matchers;
+import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +85,7 @@ public class TestPortableRunner extends PipelineRunner<PipelineResult> {
       portableOptions.setJobEndpoint(jobServerHostPort);
       PortableRunner runner = PortableRunner.fromOptions(portableOptions);
       PipelineResult result = runner.run(pipeline);
-      assertThat("Pipeline did not succeed.", result.waitUntilFinish(), Matchers.is(State.DONE));
+      assertThat("Pipeline did not succeed.", result.waitUntilFinish(Duration.standardMinutes(1)), Matchers.is(State.DONE));
       return result;
     } finally {
       try {
