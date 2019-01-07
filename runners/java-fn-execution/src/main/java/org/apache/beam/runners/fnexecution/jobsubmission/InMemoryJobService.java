@@ -323,9 +323,12 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
   @Override
   public void getJobMetrics(GetJobMetricsRequest request, StreamObserver<GetJobMetricsResponse> responseObserver) {
     String invocationId = request.getJobId();
+    LOG.info("Running getJobMetrics for {}", invocationId);
     try {
       JobInvocation invocation = getInvocation(invocationId);
+      LOG.info("Found job invocation for metrics: {}", invocation);
       MetricResults metrics = invocation.getMetrics();
+      LOG.info("Got metrics: {}", metrics);
       GetJobMetricsResponse.Builder builder = GetJobMetricsResponse.newBuilder();
       if (metrics != null) {
         MetricQueryResults results = metrics.queryMetrics(MetricsFilter.builder().build());
@@ -360,6 +363,7 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
       LOG.error(errMessage, e);
       responseObserver.onError(Status.INTERNAL.withCause(e).asException());
     }
+    LOG.info("Finished getJobMetrics for {}", invocationId);
   }
 
   @Override

@@ -135,6 +135,8 @@ public class SdkHarnessClient implements AutoCloseable {
         BundleProgressHandler progressHandler) {
       String bundleId = idGenerator.getId();
 
+      LOG.info("Sending new bundle: {} {}", bundleId, processBundleDescriptor.getId());
+
       final CompletionStage<BeamFnApi.InstructionResponse> genericResponse =
           fnApiControlClient.handle(
               BeamFnApi.InstructionRequest.newBuilder()

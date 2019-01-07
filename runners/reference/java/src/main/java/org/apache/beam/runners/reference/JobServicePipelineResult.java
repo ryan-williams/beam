@@ -240,8 +240,10 @@ class JobServicePipelineResult implements PipelineResult, AutoCloseable {
 
   @Override
   public void close() {
+    LOG.info("Cleaning up job service…");
     try (CloseableResource<JobServiceBlockingStub> jobService = this.jobService) {
       metrics();
+      LOG.info("Got metrics during cleanup");
       if (cleanup != null) {
         cleanup.run();
       }
