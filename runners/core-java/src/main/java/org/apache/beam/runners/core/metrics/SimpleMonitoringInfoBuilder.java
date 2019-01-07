@@ -134,7 +134,7 @@ public class SimpleMonitoringInfoBuilder {
     }
 
     Set<String> requiredLabels = new HashSet<String>(spec.getRequiredLabelsList());
-    if (!this.builder.getLabels().keySet().equals(requiredLabels)) {
+    if (!requiredLabels.isEmpty() && !this.builder.getLabels().keySet().equals(requiredLabels)) {
       LOG.warn(
           "Dropping MonitoringInfo since for URN {} with invalid labels. Expected: {}"
               + " Actual: {}",
