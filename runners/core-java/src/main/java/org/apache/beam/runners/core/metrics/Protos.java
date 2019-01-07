@@ -9,16 +9,7 @@ import org.apache.beam.sdk.metrics.MetricResult;
 
 public class Protos {
 
-    public static DistributionResult fromProto(IntDistributionData distributionData) {
-        return DistributionResult.create(
-            distributionData.getSum(),
-            distributionData.getCount(),
-            distributionData.getMin(),
-            distributionData.getMax()
-        );
-    }
-
-    public static MetricName fromProto(JobApiMetrics.MetricName name) {
+    public static MetricName toProto(JobApiMetrics.MetricName name) {
         return MetricName.named(name.getNamespace(), name.getName());
     }
 
@@ -33,19 +24,42 @@ public class Protos {
                         .build();
     }
 
-    public static JobApiMetrics.DistributionResult fromProto(MetricResult<DistributionResult> result) {
-        return JobApiMetrics.DistributionResult.newBuilder()
-                                         .setAttempted(fromProto(result.getAttempted()))
-                                         .setCommitted(fromProto(result.getCommitted()))
-                                         .build();
+    public static JobApiMetrics.DistributionResult distributionToProto(MetricResult<DistributionResult> result) {
+        JobApiMetrics.DistributionResult.Builder builder =
+            JobApiMetrics.DistributionResult.newBuilder()
+                                            .setAttempted(toProto(result.getAttempted()));
+        try {
+            builder.setCommitted(toProto(result.getCommitted()));
+        } catch (UnsupportedOperationException ignored) {}
+
+        return builder.build();
     }
 
-    public static IntDistributionData fromProto(DistributionResult distributionResult) {
+    public static IntDistributionData toProto(DistributionResult distributionResult) {
         return IntDistributionData.newBuilder()
                                             .setMin(distributionResult.getMin())
                                             .setMax(distributionResult.getMax())
                                             .setCount(distributionResult.getCount())
                                             .setSum(distributionResult.getSum())
                                             .build();
+    }
+
+    public static DistributionResult fromProto(IntDistributionData distributionData) {
+        return DistributionResult.create(
+            distributionData.getSum(),
+            distributionData.getCount(),
+            distributionData.getMin(),
+            distributionData.getMax()
+        );
+    }
+
+    public static JobApiMetrics.CounterResult counterToProto(MetricResult<Long> result) {
+        JobApiMetrics.CounterResult.Builder builder =
+            JobApiMetrics.CounterResult.newBuilder().setAttempted(result.getAttempted());
+        try {
+            builder.setCommitted(result.getCommitted());
+        } catch (UnsupportedOperationException ignored) {}
+
+        return builder.build();
     }
 }

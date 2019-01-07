@@ -18,7 +18,8 @@
 package org.apache.beam.runners.fnexecution.jobsubmission;
 
 import static org.apache.beam.runners.core.metrics.Protos.keyFromProto;
-import static org.apache.beam.runners.core.metrics.Protos.fromProto;
+import static org.apache.beam.runners.core.metrics.Protos.counterToProto;
+import static org.apache.beam.runners.core.metrics.Protos.distributionToProto;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +47,7 @@ import org.apache.beam.model.jobmanagement.v1.JobApiMetrics.MetricResult;
 import org.apache.beam.model.jobmanagement.v1.JobApiMetrics.MetricStatus;
 import org.apache.beam.model.pipeline.v1.Endpoints;
 import org.apache.beam.runners.core.construction.graph.PipelineValidator;
+import org.apache.beam.runners.core.metrics.Protos;
 import org.apache.beam.runners.fnexecution.FnService;
 import org.apache.beam.sdk.fn.function.ThrowingConsumer;
 import org.apache.beam.sdk.fn.stream.SynchronizedStreamObserver;
@@ -334,11 +336,7 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
                                 .setKey(keyFromProto(counter))
                                 .setMetric(
                                     MetricResult.newBuilder()
-                                                .setCounterValue(
-                                                    CounterResult.newBuilder()
-                                                                 .setAttempted(counter.getAttempted())
-                                                                 .setCommitted(counter.getCommitted())
-                                                )
+                                                .setCounterValue(counterToProto(counter))
                                 )
                 )
         );
@@ -349,15 +347,16 @@ public class InMemoryJobService extends JobServiceGrpc.JobServiceImplBase implem
                                 .setKey(keyFromProto(distribution))
                                 .setMetric(
                                     MetricResult.newBuilder()
-                                                .setDistributionValue(fromProto(distribution))
+                                                .setDistributionValue(distributionToProto(distribution))
                                 )
                 )
         );
       }
       responseObserver.onNext(builder.build());
+      responseObserver.onCompleted();
     } catch (Exception e) {
       String errMessage =
-          String.format("Encountered Unexpected Exception for Invocation %s", invocationId);
+          String.format("Encountered unexpected Exception for Invocation %s", invocationId);
       LOG.error(errMessage, e);
       responseObserver.onError(Status.INTERNAL.withCause(e).asException());
     }
