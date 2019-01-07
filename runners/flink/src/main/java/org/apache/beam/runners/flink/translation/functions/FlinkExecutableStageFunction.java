@@ -133,7 +133,7 @@ public class FlinkExecutableStageFunction<InputT> extends AbstractRichFunction
   @Override
   public void open(Configuration parameters) throws Exception {
     // Register standard file systems.
-    // TODO Use actual pipeline options.
+    // TODO(ryan): Use actual pipeline options.
     FileSystems.setDefaultPipelineOptions(PipelineOptionsFactory.create());
     executableStage = ExecutableStage.fromPayload(stagePayload);
     runtimeContext = getRuntimeContext();
