@@ -126,7 +126,7 @@ def portableValidatesRunnerTask(String name, Boolean streaming) {
     pipelineOpts: pipelineOptions,
     environment: BeamModulePlugin.PortableValidatesRunnerConfiguration.Environment.EMBEDDED,
     testCategories: {
-      includeCategories 'org.apache.beam.sdk.testing.ValidatesRunner'
+      includeCategories 'org.apache.beam.sdk.testing.Foo'
       excludeCategories 'org.apache.beam.sdk.testing.FlattenWithHeterogeneousCoders'
       excludeCategories 'org.apache.beam.sdk.testing.LargeKeys$Above100MB'
       excludeCategories 'org.apache.beam.sdk.testing.UsesCommittedMetrics'
