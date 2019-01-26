@@ -497,7 +497,6 @@ public class RemoteExecutionTest implements Serializable {
     }
   }
 
-  // TODO(ajamato): Test creating the metric in the ctor/object field.
   @Test
   public void testMetrics() throws Exception {
     final String processUserCounterName = "processUserCounter";
@@ -682,7 +681,6 @@ public class RemoteExecutionTest implements Serializable {
             builder.setInt64Value(6);
             expected.add(builder.build());
 
-            // assertEquals(expected.size(), result.size());
             assertThat(result, containsInAnyOrder(expected.toArray()));
           }
         };
@@ -699,9 +697,6 @@ public class RemoteExecutionTest implements Serializable {
                   CoderUtils.encodeToByteArray(StringUtf8Coder.of(), "Y")));
     }
   }
-
-  // TODO(ajamato): Write a test where the ElementCount counters may be under
-  // different metrics containers.
 
   @Test
   public void testExecutionWithUserState() throws Exception {
