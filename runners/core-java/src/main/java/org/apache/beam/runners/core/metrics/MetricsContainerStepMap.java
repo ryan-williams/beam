@@ -52,8 +52,8 @@ public class MetricsContainerStepMap implements Serializable {
 
   /**
    * Key class to lookup the metric container for a step or unbound to any step. This is preferable
-   * to using null(which can't be used as a key). Additonally, this class could be extended to allow
-   * containers for other non pTransform contexts.
+   * to using null (which can't be used as a key). Additionally, this class could be extended to
+   * allow containers for other non pTransform contexts.
    */
   @AutoValue
   abstract static class MetricsContainerKey implements Serializable {
