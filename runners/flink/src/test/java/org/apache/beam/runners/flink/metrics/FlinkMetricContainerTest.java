@@ -17,8 +17,8 @@
  */
 package org.apache.beam.runners.flink.metrics;
 
-import static org.apache.beam.model.fnexecution.v1.BeamFnApi.labelProps;
 import static org.apache.beam.runners.core.metrics.SimpleMonitoringInfoBuilder.ELEMENT_COUNT_URN;
+import static org.apache.beam.runners.core.metrics.SimpleMonitoringInfoBuilder.PTRANSFORM_LABEL;
 import static org.apache.beam.runners.core.metrics.SimpleMonitoringInfoBuilder.USER_COUNTER_URN_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNotNull;
@@ -67,13 +67,6 @@ public class FlinkMetricContainerTest {
 
   @Mock private RuntimeContext runtimeContext;
   @Mock private MetricGroup metricGroup;
-
-  static final String PTRANSFORM_LABEL =
-      MonitoringInfoLabels.forNumber(MonitoringInfoLabels.TRANSFORM_VALUE)
-          .getValueDescriptor()
-          .getOptions()
-          .getExtension(labelProps)
-          .getName();
 
   @Before
   public void beforeTest() {
