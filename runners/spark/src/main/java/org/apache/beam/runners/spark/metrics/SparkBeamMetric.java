@@ -64,7 +64,8 @@ class SparkBeamMetric implements Metric {
 
   @VisibleForTesting
   String renderName(MetricResult<?> metricResult) {
-    String renderedStepName = metricResult.getStep().replaceAll(ILLEGAL_CHARACTERS_AND_PERIOD, "_");
+    String renderedStepName =
+        metricResult.getKey().toString().replaceAll(ILLEGAL_CHARACTERS_AND_PERIOD, "_");
     if (renderedStepName.endsWith("_")) {
       renderedStepName = renderedStepName.substring(0, renderedStepName.length() - 1);
     }
