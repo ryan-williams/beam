@@ -55,6 +55,6 @@ public class SimpleExecutionState extends ExecutionState {
 
   @Override
   public void reportLull(Thread trackedThread, long millis) {
-    // TOOD(ajamato): Implement lullz detection to log stuck PTransforms.
+    // TOOD(ajamato): Implement lull detection to log stuck PTransforms.
   }
 }
