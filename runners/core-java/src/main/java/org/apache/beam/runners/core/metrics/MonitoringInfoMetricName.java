@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfo;
 import org.apache.beam.sdk.metrics.MetricName;
@@ -81,16 +82,33 @@ public class MonitoringInfoMetricName extends MetricName {
     if (this.namespace == null) {
       parseUrn();
     }
+    checkAccess();
     return this.namespace;
   }
-
   /** @return the parsed name from the user metric URN, otherwise null. */
   @Override
   public String getName() {
     if (this.name == null) {
       parseUrn();
     }
+    checkAccess();
     return this.name;
+  }
+
+  public void checkAccess() {
+    if (this.namespace == null || this.name == null) {
+      throw new IllegalStateException(
+          String.format(
+              "Asking for name of a nameless MonitoringInfo metric (%s:%s): %s, %s",
+              this.namespace,
+              this.name,
+              this.urn,
+              String.join(
+                  ", ",
+                  getLabels().entrySet().stream()
+                      .map(entry -> entry.getKey() + ": " + entry.getValue())
+                      .collect(Collectors.toList()))));
+    }
   }
 
   /** @return the urn of this MonitoringInfo metric. */
