@@ -94,8 +94,8 @@ public class FlinkMetricContainer {
    * Update this container with metrics from the passed {@link MonitoringInfo}s, and send updates
    * along to Flink's internal metrics framework.
    */
-  public void updateMetrics(String stepName, List<MonitoringInfo> monitoringInfos) {
-    MetricsContainer metricsContainer = getMetricsContainer(stepName);
+  public void updateMetrics(List<MonitoringInfo> monitoringInfos) {
+    LOG.info("Flink updating metrics with {} monitoring infos", monitoringInfos.size());
     monitoringInfos.forEach(
         monitoringInfo -> {
           if (monitoringInfo.hasMetric()) {
@@ -108,18 +108,23 @@ public class FlinkMetricContainer {
                 distribution -> updateDistribution(metricKey, distribution),
                 gauge -> updateGauge(metricKey, gauge));
           }
+
+          MetricsContainer container = getMetricsContainer(ptransform);
+          if (container == null) {
+            LOG.warn("Can't add monitoringinfo to null MetricsContainer: {}", monitoringInfo);
+            return;
+          }
         });
-    updateMetrics(stepName);
   }
 
   /**
    * Update Flink's internal metrics ({@link this#flinkCounterCache}) with the latest metrics for a
    * given step.
    */
-  void updateMetrics(String stepName) {
+  void updateMetrics() {
     MetricResults metricResults = asAttemptedOnlyMetricResults(metricsAccumulator.getLocalValue());
     MetricQueryResults metricQueryResults =
-        metricResults.queryMetrics(MetricsFilter.builder().addStep(stepName).build());
+        metricResults.queryMetrics(MetricsFilter.builder().build());
     updateCounters(metricQueryResults.getCounters());
     updateDistributions(metricQueryResults.getDistributions());
     updateGauge(metricQueryResults.getGauges());
