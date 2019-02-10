@@ -37,7 +37,11 @@ public abstract class MetricKey implements Serializable {
 
   @Override
   public String toString() {
-    return String.format("%s:%s", stepName(), metricName());
+    return toString(":");
+  }
+
+  public String toString(String delimiter) {
+    return String.format("%s%s%s", stepName(), delimiter, metricName());
   }
 
   public static MetricKey create(@Nullable String stepName, MetricName metricName) {
