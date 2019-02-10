@@ -33,6 +33,8 @@ import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfoSpecs;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfoTypeUrns;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfoUrns;
 import org.apache.beam.runners.core.construction.BeamUrns;
+import org.apache.beam.sdk.metrics.DistributionResult;
+import org.apache.beam.sdk.metrics.GaugeResult;
 import org.apache.beam.sdk.metrics.MetricKey;
 import org.apache.beam.sdk.metrics.MetricName;
 import org.apache.beam.vendor.guava.v20_0.com.google.common.annotations.VisibleForTesting;
@@ -193,11 +195,27 @@ public class SimpleMonitoringInfoBuilder {
     return this;
   }
 
+  public SimpleMonitoringInfoBuilder setIntDistributionValue(DistributionData value) {
+    return setIntDistributionValue(value.extractResult());
+  }
+
+  public SimpleMonitoringInfoBuilder setIntDistributionValue(DistributionResult value) {
+    return setIntDistributionValue(DistributionProtos.toProto(value));
+  }
+
   /** Sets the int64Value of the CounterData in the MonitoringInfo, and the appropraite type URN. */
   public SimpleMonitoringInfoBuilder setIntDistributionValue(IntDistributionData value) {
     this.builder.getMetricBuilder().setDistribution(value);
     this.builder.setType(DISTRIBUTION_INT64_TYPE_URN);
     return this;
+  }
+
+  public SimpleMonitoringInfoBuilder setGaugeValue(GaugeData value) {
+    return setGaugeValue(value.extractResult());
+  }
+
+  public SimpleMonitoringInfoBuilder setGaugeValue(GaugeResult value) {
+    return setGaugeValue(GaugeProtos.toProto(value));
   }
 
   /** Sets the int64Value of the CounterData in the MonitoringInfo, and the appropraite type URN. */
