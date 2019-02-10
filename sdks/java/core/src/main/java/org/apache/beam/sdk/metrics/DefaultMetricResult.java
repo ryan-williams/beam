@@ -19,6 +19,7 @@ package org.apache.beam.sdk.metrics;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.google.auto.value.AutoValue;
+import javax.annotation.Nullable;
 import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
 
@@ -31,9 +32,11 @@ public abstract class DefaultMetricResult<T> extends MetricResult<T> {
   public abstract MetricKey getKey();
 
   @Override
+  @Nullable
   public abstract T getCommitted();
 
   @Override
+  @Nullable
   public abstract T getAttempted();
 
   public static <T> DefaultMetricResult<T> create(MetricKey key, T committed, T attempted) {

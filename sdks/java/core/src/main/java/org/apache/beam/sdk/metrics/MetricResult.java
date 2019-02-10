@@ -18,6 +18,7 @@
 package org.apache.beam.sdk.metrics;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
+import javax.annotation.Nullable;
 import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
 
@@ -41,9 +42,11 @@ public abstract class MetricResult<T> {
    * <p>Not all runners will support committed metrics. If they are not supported, the runner will
    * throw an {@link UnsupportedOperationException}.
    */
+  @Nullable
   public abstract T getCommitted();
 
   /** Return the value of this metric across all attempts of executing all parts of the pipeline. */
+  @Nullable
   public abstract T getAttempted();
 
   public static <T> MetricResult<T> create(MetricKey key, T committed, T attempted) {
