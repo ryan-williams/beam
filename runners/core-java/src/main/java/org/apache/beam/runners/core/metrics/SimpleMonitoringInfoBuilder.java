@@ -17,6 +17,9 @@
  */
 package org.apache.beam.runners.core.metrics;
 
+import static org.apache.beam.model.fnexecution.v1.BeamFnApi.IntDistributionData;
+import static org.apache.beam.model.fnexecution.v1.BeamFnApi.IntGaugeData;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Optional;
@@ -71,6 +74,10 @@ public class SimpleMonitoringInfoBuilder {
       BeamUrns.getUrn(MonitoringInfoUrns.Enum.USER_COUNTER_URN_PREFIX);
   public static final String SUM_INT64_TYPE_URN =
       BeamUrns.getUrn(MonitoringInfoTypeUrns.Enum.SUM_INT64_TYPE);
+  public static final String DISTRIBUTION_INT64_TYPE_URN =
+      BeamUrns.getUrn(MonitoringInfoTypeUrns.Enum.DISTRIBUTION_INT64_TYPE);
+  public static final String LATEST_INT64_TYPE_URN =
+      BeamUrns.getUrn(MonitoringInfoTypeUrns.Enum.LATEST_INT64_TYPE);
 
   private static final HashMap<String, MonitoringInfoSpec> specs =
       new HashMap<String, MonitoringInfoSpec>();
@@ -164,6 +171,20 @@ public class SimpleMonitoringInfoBuilder {
   /** Sets the the appropriate type URN for sum int64 counters. */
   public SimpleMonitoringInfoBuilder setInt64TypeUrn() {
     this.builder.setType(SUM_INT64_TYPE_URN);
+    return this;
+  }
+
+  /** Sets the int64Value of the CounterData in the MonitoringInfo, and the appropraite type URN. */
+  public SimpleMonitoringInfoBuilder setIntDistributionValue(IntDistributionData value) {
+    this.builder.getMetricBuilder().setDistribution(value);
+    this.builder.setType(DISTRIBUTION_INT64_TYPE_URN);
+    return this;
+  }
+
+  /** Sets the int64Value of the CounterData in the MonitoringInfo, and the appropraite type URN. */
+  public SimpleMonitoringInfoBuilder setGaugeValue(IntGaugeData value) {
+    this.builder.getMetricBuilder().setGauge(value);
+    this.builder.setType(LATEST_INT64_TYPE_URN);
     return this;
   }
 
