@@ -67,6 +67,14 @@ public class MonitoringInfoMetricName extends MetricName {
     }
   }
 
+  @Override
+  public Boolean isUserMetric() {
+    if (this.namespace == null) {
+      parseUrn();
+    }
+    return this.namespace != null;
+  }
+
   /** @return the parsed namespace from the user metric URN, otherwise null. */
   @Override
   public String getNamespace() {
