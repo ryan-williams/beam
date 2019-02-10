@@ -33,6 +33,8 @@ import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfoSpecs;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfoTypeUrns;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfoUrns;
 import org.apache.beam.runners.core.construction.BeamUrns;
+import org.apache.beam.sdk.metrics.MetricKey;
+import org.apache.beam.sdk.metrics.MetricName;
 import org.apache.beam.vendor.guava.v20_0.com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +142,23 @@ public class SimpleMonitoringInfoBuilder {
    */
   public SimpleMonitoringInfoBuilder setUrn(String urn) {
     this.builder.setUrn(urn);
+    return this;
+  }
+
+  public SimpleMonitoringInfoBuilder handleMetricKey(MetricKey key) {
+    MetricName metricName = key.metricName();
+    if (metricName instanceof MonitoringInfoMetricName) {
+      MonitoringInfoMetricName name = (MonitoringInfoMetricName) metricName;
+      builder.setUrn(name.getUrn()).putAllLabels(name.getLabels());
+    } else {
+      setUrnForUserMetric(metricName.getNamespace(), metricName.getName());
+      String ptransform = key.stepName();
+      if (ptransform != null) {
+        setPTransformLabel(ptransform);
+      } else {
+        LOG.warn("User metric {} without step name set", metricName);
+      }
+    }
     return this;
   }
 
