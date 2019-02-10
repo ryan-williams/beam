@@ -17,6 +17,7 @@
  */
 package org.apache.beam.runners.core.metrics;
 
+import static org.apache.beam.runners.core.metrics.MetricUrns.parseUrn;
 import static org.apache.beam.vendor.guava.v20_0.com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
@@ -126,8 +127,13 @@ public class MonitoringInfoMetricName extends MetricName {
   }
 
   /** @return a MetricName for a specific urn and labels map. */
-  public static MonitoringInfoMetricName create(MonitoringInfo monitoringInfo) {
-    return new MonitoringInfoMetricName(monitoringInfo.getUrn(), monitoringInfo.getLabelsMap());
+  public static MetricName create(MonitoringInfo monitoringInfo) {
+    String urn = monitoringInfo.getUrn();
+    MetricName metricName = MetricUrns.parseUrn(urn);
+    if (metricName == null) {
+      return new MonitoringInfoMetricName(urn, monitoringInfo.getLabelsMap());
+    }
+    return metricName;
   }
 
   @Override
