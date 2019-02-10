@@ -31,8 +31,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.beam.model.fnexecution.v1.BeamFnApi;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi.CounterData;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi.DoubleDistributionData;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.IntDistributionData;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.Metric;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfo;
@@ -167,16 +165,14 @@ public class FlinkMetricContainerTest {
         MonitoringInfo.newBuilder()
             .setUrn(USER_COUNTER_URN_PREFIX + "ns1:int_counter")
             .putLabels(PTRANSFORM_LABEL, "step")
-            .setMetric(
-                Metric.newBuilder().setCounterData(CounterData.newBuilder().setInt64Value(111)))
+            .setMetric(Metric.newBuilder().setCounter(111))
             .build();
 
     MonitoringInfo doubleCounter =
         MonitoringInfo.newBuilder()
             .setUrn(USER_COUNTER_URN_PREFIX + "ns2:double_counter")
             .putLabels(PTRANSFORM_LABEL, "step")
-            .setMetric(
-                Metric.newBuilder().setCounterData(CounterData.newBuilder().setDoubleValue(222)))
+            .setMetric(Metric.newBuilder().setCounter(222))
             .build();
 
     MonitoringInfo intDistribution =
@@ -185,30 +181,12 @@ public class FlinkMetricContainerTest {
             .putLabels(PTRANSFORM_LABEL, "step")
             .setMetric(
                 Metric.newBuilder()
-                    .setDistributionData(
-                        BeamFnApi.DistributionData.newBuilder()
-                            .setIntDistributionData(
-                                IntDistributionData.newBuilder()
-                                    .setSum(30)
-                                    .setCount(10)
-                                    .setMin(1)
-                                    .setMax(5))))
-            .build();
-
-    MonitoringInfo doubleDistribution =
-        MonitoringInfo.newBuilder()
-            .setUrn(USER_COUNTER_URN_PREFIX + "ns4:double_distribution")
-            .putLabels(PTRANSFORM_LABEL, "step")
-            .setMetric(
-                Metric.newBuilder()
-                    .setDistributionData(
-                        BeamFnApi.DistributionData.newBuilder()
-                            .setDoubleDistributionData(
-                                DoubleDistributionData.newBuilder()
-                                    .setSum(30)
-                                    .setCount(10)
-                                    .setMin(1)
-                                    .setMax(5))))
+                    .setDistribution(
+                        IntDistributionData.newBuilder()
+                            .setSum(30)
+                            .setCount(10)
+                            .setMin(1)
+                            .setMax(5)))
             .build();
 
     // Mock out the counter that Flink returns; the distribution gets created by
@@ -216,8 +194,7 @@ public class FlinkMetricContainerTest {
     SimpleCounter counter = new SimpleCounter();
     when(metricGroup.counter("ns1.int_counter")).thenReturn(counter);
 
-    flinkContainer.updateMetrics(
-        "step", ImmutableList.of(intCounter, doubleCounter, intDistribution, doubleDistribution));
+    flinkContainer.updateMetrics(ImmutableList.of(intCounter, doubleCounter, intDistribution));
 
     // Flink's MetricGroup should only have asked for one counter (the integer-typed one) to be
     // created (the double-typed one is dropped currently)

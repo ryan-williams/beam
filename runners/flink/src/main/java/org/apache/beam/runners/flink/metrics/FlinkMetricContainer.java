@@ -23,10 +23,6 @@ import static org.apache.beam.runners.core.metrics.MetricsContainerStepMap.asAtt
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi.CounterData;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi.DistributionData;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi.ExtremaData;
-import org.apache.beam.model.fnexecution.v1.BeamFnApi.IntDistributionData;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.Metric;
 import org.apache.beam.model.fnexecution.v1.BeamFnApi.MonitoringInfo;
 import org.apache.beam.runners.core.metrics.MetricsContainerImpl;
@@ -106,32 +102,11 @@ public class FlinkMetricContainer {
             String urn = monitoringInfo.getUrn();
             MetricName metricName = parseUrn(urn);
             Metric metric = monitoringInfo.getMetric();
-            if (metric.hasCounterData()) {
-              CounterData counterData = metric.getCounterData();
-              if (counterData.getValueCase() == CounterData.ValueCase.INT64_VALUE) {
-                org.apache.beam.sdk.metrics.Counter counter =
-                    metricsContainer.getCounter(metricName);
-                counter.inc(counterData.getInt64Value());
-              } else {
-                LOG.warn("Unsupported CounterData type: {}", counterData);
-              }
-            } else if (metric.hasDistributionData()) {
-              DistributionData distributionData = metric.getDistributionData();
-              if (distributionData.hasIntDistributionData()) {
-                Distribution distribution = metricsContainer.getDistribution(metricName);
-                IntDistributionData intDistributionData = distributionData.getIntDistributionData();
-                distribution.update(
-                    intDistributionData.getSum(),
-                    intDistributionData.getCount(),
-                    intDistributionData.getMin(),
-                    intDistributionData.getMax());
-              } else {
-                LOG.warn("Unsupported DistributionData type: {}", distributionData);
-              }
-            } else if (metric.hasExtremaData()) {
-              ExtremaData extremaData = metric.getExtremaData();
-              LOG.warn("Extrema metric unsupported: {}", extremaData);
-            }
+            processMetric(
+                metric,
+                counter -> updateCounter(metricKey, counter),
+                distribution -> updateDistribution(metricKey, distribution),
+                gauge -> updateGauge(metricKey, gauge));
           }
         });
     updateMetrics(stepName);
