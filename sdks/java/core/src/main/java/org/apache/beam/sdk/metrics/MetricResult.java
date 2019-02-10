@@ -19,6 +19,7 @@ package org.apache.beam.sdk.metrics;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
 import javax.annotation.Nullable;
+import java.util.function.Function;
 import org.apache.beam.sdk.annotations.Experimental;
 import org.apache.beam.sdk.annotations.Experimental.Kind;
 
@@ -48,6 +49,13 @@ public abstract class MetricResult<T> {
   /** Return the value of this metric across all attempts of executing all parts of the pipeline. */
   @Nullable
   public abstract T getAttempted();
+
+  public <V> MetricResult<V> transform(Function<T, V> fn) {
+    return MetricResult.create(
+        getKey(),
+        getCommitted() == null ? null : fn.apply(getCommitted()),
+        getAttempted() == null ? null : fn.apply(getAttempted()));
+  }
 
   public static <T> MetricResult<T> create(MetricKey key, T committed, T attempted) {
     return DefaultMetricResult.create(key, committed, attempted);
