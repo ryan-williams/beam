@@ -314,7 +314,7 @@ message ProcessBundleProgressRequest {
 // ProcessBundleResponse reporting.
 message MonitoringInfoSpec {
   string urn = 1;
-  string type_urn = 2;
+  repeated string type_urns = 2;
   // The list of required
   repeated string required_labels = 3;
   // Extra non functional parts of the spec for descriptive purposes.
@@ -339,12 +339,12 @@ message MonitoringInfoSpecs {
     // upgrading the python SDK.
     USER_COUNTER = 0 [(monitoring_info_spec) = {
       urn: "beam:metric:user:",
-      type_urn: "beam:metrics:sum_int_64",
+      type_urns: [ "beam:metrics:sum_int_64", "beam:metrics:distribution_int_64", "beam:metrics:latest_int_64" ]
     }];
 
     ELEMENT_COUNT = 1 [(monitoring_info_spec) = {
       urn: "beam:metric:element_count:v1",
-      type_urn: "beam:metrics:sum_int_64",
+      type_urns: [ "beam:metrics:sum_int_64" ],
       required_labels: [ "PCOLLECTION" ],
       annotations: [ {
         key: "description",
@@ -354,7 +354,7 @@ message MonitoringInfoSpecs {
 
     START_BUNDLE_MSECS = 2 [(monitoring_info_spec) = {
       urn: "beam:metric:pardo_execution_time:start_bundle_msecs:v1",
-      type_urn: "beam:metrics:sum_int_64",
+      type_urns: [ "beam:metrics:sum_int_64" ],
       required_labels: [ "PTRANSFORM" ],
       annotations: [ {
         key: "description",
@@ -365,7 +365,7 @@ message MonitoringInfoSpecs {
 
     PROCESS_BUNDLE_MSECS = 3 [(monitoring_info_spec) = {
       urn: "beam:metric:pardo_execution_time:process_bundle_msecs:v1",
-      type_urn: "beam:metrics:sum_int_64",
+      type_urns: [ "beam:metrics:sum_int_64" ],
       required_labels: [ "PTRANSFORM" ],
       annotations: [ {
         key: "description",
@@ -376,7 +376,7 @@ message MonitoringInfoSpecs {
 
     FINISH_BUNDLE_MSECS = 4 [(monitoring_info_spec) = {
       urn: "beam:metric:pardo_execution_time:finish_bundle_msecs:v1",
-      type_urn: "beam:metrics:sum_int_64",
+      type_urns: [ "beam:metrics:sum_int_64" ],
       required_labels: [ "PTRANSFORM" ],
       annotations: [ {
         key: "description",
@@ -387,7 +387,7 @@ message MonitoringInfoSpecs {
 
     TOTAL_MSECS = 5 [(monitoring_info_spec) = {
       urn: "beam:metric:ptransform_execution_time:total_msecs:v1",
-      type_urn: "beam:metrics:sum_int_64",
+      type_urns: [ "beam:metrics:sum_int_64" ],
       required_labels: [ "PTRANSFORM" ],
       annotations: [ {
         key: "description",

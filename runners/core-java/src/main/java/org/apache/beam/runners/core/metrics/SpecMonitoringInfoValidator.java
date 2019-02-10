@@ -61,11 +61,13 @@ public class SpecMonitoringInfoValidator {
       return Optional.empty();
     }
 
-    if (!monitoringInfo.getType().equals(spec.getTypeUrn())) {
+    if (!spec.getTypeUrnsList().contains(monitoringInfo.getType())) {
       return Optional.of(
           String.format(
-              "Monitoring info with urn: %s should have type: %s, received %s",
-              monitoringInfo.getUrn(), spec.getTypeUrn(), monitoringInfo.getType()));
+              "Monitoring info with urn: %s should have type in: [ %s ], received %s",
+              monitoringInfo.getUrn(),
+              String.join(", ", spec.getTypeUrnsList()),
+              monitoringInfo.getType()));
     }
 
     // TODO(ajamato): Tighten this restriction to use set equality, to catch unused
