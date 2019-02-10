@@ -153,6 +153,8 @@ public class FlinkExecutableStageFunction<InputT> extends AbstractRichFunction
 
           @Override
           public void onCompleted(ProcessBundleResponse response) {
+            LOG.info(
+                "Flink got bundle response with {} MIs", response.getMonitoringInfosList().size());
             container.updateMetrics(response.getMonitoringInfosList());
           }
         };

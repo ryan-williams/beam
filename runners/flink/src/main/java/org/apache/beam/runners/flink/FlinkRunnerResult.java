@@ -27,12 +27,16 @@ import org.apache.beam.runners.flink.metrics.FlinkMetricContainer;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.metrics.MetricResults;
 import org.joda.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Result of executing a {@link org.apache.beam.sdk.Pipeline} with Flink. This has methods to query
  * to job runtime and the final values of the accumulators.
  */
 public class FlinkRunnerResult implements PipelineResult {
+
+  private static final Logger LOG = LoggerFactory.getLogger(FlinkRunnerResult.class);
 
   private final Map<String, Object> accumulators;
 
@@ -77,6 +81,8 @@ public class FlinkRunnerResult implements PipelineResult {
   }
 
   MetricsContainerStepMap getMetricsContainerStepMap() {
-    return (MetricsContainerStepMap) accumulators.get(FlinkMetricContainer.ACCUMULATOR_NAME);
+    Object map = accumulators.get(FlinkMetricContainer.ACCUMULATOR_NAME);
+    LOG.info("Flink get MCSM: {}", map);
+    return (MetricsContainerStepMap) map;
   }
 }

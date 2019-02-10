@@ -202,6 +202,7 @@ public class FlinkJobInvocation implements JobInvocation {
               setState(JobState.Enum.DONE);
               try {
                 metrics = pipelineResult.metrics();
+                LOG.info("Got result metrics: {}", metrics);
               } catch (UnsupportedOperationException e) {
               }
             } else {

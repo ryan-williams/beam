@@ -40,6 +40,8 @@ import org.apache.beam.vendor.guava.v20_0.com.google.common.base.Function;
 import org.apache.beam.vendor.guava.v20_0.com.google.common.base.Predicate;
 import org.apache.beam.vendor.guava.v20_0.com.google.common.collect.FluentIterable;
 import org.apache.beam.vendor.guava.v20_0.com.google.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Metrics containers by step.
@@ -47,6 +49,9 @@ import org.apache.beam.vendor.guava.v20_0.com.google.common.collect.Iterables;
  * <p>This class is not thread-safe.
  */
 public class MetricsContainerStepMap implements Serializable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(MetricsContainerStepMap.class);
+
   private Map<String, MetricsContainerImpl> metricsContainers;
   private MetricsContainerImpl unboundContainer = new MetricsContainerImpl(null);
 
@@ -144,6 +149,12 @@ public class MetricsContainerStepMap implements Serializable {
   public static MetricResults asAttemptedOnlyMetricResults(
       MetricsContainerStepMap attemptedMetricsContainers) {
     return new MetricsContainerStepMapMetricResults(attemptedMetricsContainers);
+  }
+
+  @Override
+  public String toString() {
+    LOG.info("Converting MCSM to MRs");
+    return asAttemptedOnlyMetricResults(this).toString();
   }
 
   private Iterable<MetricsContainerImpl> getMetricsContainers() {

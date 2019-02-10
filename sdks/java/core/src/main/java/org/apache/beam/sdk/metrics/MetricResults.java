@@ -60,4 +60,9 @@ public abstract class MetricResults {
    * }</pre>
    */
   public abstract MetricQueryResults queryMetrics(@Nullable MetricsFilter filter);
+
+  @Override
+  public String toString() {
+    return queryMetrics(null).toString();
+  }
 }
