@@ -28,6 +28,8 @@ from apache_beam.metrics.cells import DistributionData
 from apache_beam.metrics.cells import DistributionResult
 from apache_beam.metrics.cells import GaugeData
 from apache_beam.metrics.cells import GaugeResult
+from apache_beam.metrics.execution import MetricKey
+from apache_beam.metrics.metricbase import MetricName
 from apache_beam.portability import common_urns
 from apache_beam.portability.api.beam_fn_api_pb2 import Metric
 from apache_beam.portability.api.beam_fn_api_pb2 import MonitoringInfo
@@ -241,3 +243,10 @@ def to_key(monitoring_info_proto):
   key_items = [i for i in monitoring_info_proto.labels.items()]
   key_items.append(monitoring_info_proto.urn)
   return frozenset(key_items)
+
+
+def metric_key(monitoring_info_proto):
+  ptransform = monitoring_info_proto.labels['PTRANSFORM']  # TODO: use canonical string
+  namespace, name = parse_namespace_and_name(monitoring_info_proto)
+  metric_name = MetricName(namespace, name)
+  MetricKey(ptransform, metric_name)
