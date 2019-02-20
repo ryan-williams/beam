@@ -17,7 +17,6 @@
  */
 package org.apache.beam.runners.core.metrics;
 
-import static org.apache.beam.runners.core.metrics.SimpleMonitoringInfoBuilder.PCOLLECTION_LABEL;
 import static org.apache.beam.runners.core.metrics.SimpleMonitoringInfoBuilder.USER_COUNTER_URN_PREFIX;
 import static org.apache.beam.vendor.guava.v20_0.com.google.common.base.Preconditions.checkArgument;
 
@@ -141,8 +140,8 @@ public class MonitoringInfoMetricName extends MetricName {
       return super.toString(delimiter);
     }
     StringBuilder builder = new StringBuilder();
-    if (labels.containsKey(PCOLLECTION_LABEL)) {
-      builder.append(labels.get(PCOLLECTION_LABEL)).append(delimiter);
+    for (Map.Entry<String, String> entry : labels.entrySet()) {
+      builder.append(entry.getKey()).append(delimiter).append(entry.getValue()).append(delimiter);
     }
     builder.append(this.urn.replaceAll(":", delimiter));
     return builder.toString();

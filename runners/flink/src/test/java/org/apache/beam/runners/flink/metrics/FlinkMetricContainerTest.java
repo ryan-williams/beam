@@ -133,7 +133,7 @@ public class FlinkMetricContainerTest {
     when(metricGroup.counter("step.ns1.metric1")).thenReturn(userCounter);
 
     SimpleCounter elemCounter = new SimpleCounter();
-    when(metricGroup.counter("step.pcoll.beam.metric.element_count.v1")).thenReturn(elemCounter);
+    when(metricGroup.counter("step.PTRANSFORM.step.PCOLLECTION.pcoll.beam.metric.element_count.v1")).thenReturn(elemCounter);
 
     SimpleMonitoringInfoBuilder userCountBuilder = new SimpleMonitoringInfoBuilder();
     userCountBuilder.setUrnForUserMetric("ns1", "metric1");
